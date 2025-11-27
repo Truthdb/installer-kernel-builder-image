@@ -1,9 +1,9 @@
-name: Validate pushes and PR's
+name: Validate pushes and PRs
 on:
   pull_request:
     paths:
       - 'docker/Dockerfile'
-      - '.github/workflows/build-kernel-builder-image.yml'
+      - '.github/workflows/build-installer-kernel-builder-image.yml'
       - '.github/workflows/validate-push-and-pr.yml'
 
 jobs:

@@ -1,0 +1,25 @@
+name: Validate pushes and PRs
+on:
+  pull_request:
+    paths:
+      - 'docker/Dockerfile'
+      - '.github/workflows/build-installer-kernel-builder-image.yml'
+      - '.github/workflows/validate-push-and-pr.yml'
+
+jobs:
+  validate-build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: false

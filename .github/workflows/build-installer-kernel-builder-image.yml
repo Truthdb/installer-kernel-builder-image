@@ -35,6 +35,6 @@ jobs:
           file: docker/Dockerfile
           push: true
           tags: |
-            ghcr.io/truthdb/truthdb-kernel-build:latest
-            ghcr.io/truthdb/truthdb-kernel-build:${{ github.sha }}
-            ghcr.io/truthdb/truthdb-kernel-build:${{ steps.vars.outputs.VERSION }}
+            ghcr.io/truthdb/truthdb-installer-kernel-builder-image:latest
+            ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ github.sha }}
+            ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ steps.vars.outputs.VERSION }}

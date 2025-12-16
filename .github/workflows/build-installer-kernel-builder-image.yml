@@ -17,6 +17,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Extract version
         id: vars
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
@@ -28,13 +34,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and push image (amd64)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
+          platforms: linux/amd64
           push: true
           tags: |
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:latest
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ github.sha }}
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ steps.vars.outputs.VERSION }}
+
+      - name: Build and push image (arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ghcr.io/truthdb/truthdb-installer-kernel-builder-image-arm:latest
+            ghcr.io/truthdb/truthdb-installer-kernel-builder-image-arm:${{ github.sha }}
+            ghcr.io/truthdb/truthdb-installer-kernel-builder-image-arm:${{ steps.vars.outputs.VERSION }}

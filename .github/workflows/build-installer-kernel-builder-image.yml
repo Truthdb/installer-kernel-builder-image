@@ -34,26 +34,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image (amd64)
+      - name: Build and push image (multi-arch)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:latest
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ github.sha }}
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ steps.vars.outputs.VERSION }}
-
-      - name: Build and push image (arm64)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: docker/Dockerfile
-          platforms: linux/arm64
-          push: true
-          tags: |
-            ghcr.io/truthdb/truthdb-installer-kernel-builder-image-arm:latest
-            ghcr.io/truthdb/truthdb-installer-kernel-builder-image-arm:${{ github.sha }}
-            ghcr.io/truthdb/truthdb-installer-kernel-builder-image-arm:${{ steps.vars.outputs.VERSION }}

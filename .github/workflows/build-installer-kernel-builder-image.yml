@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       contents: read
@@ -15,27 +15,27 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
 
       - name: Extract version
         id: vars
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push image (multi-arch)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
           context: .
           file: docker/Dockerfile
@@ -45,3 +45,4 @@ jobs:
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:latest
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ github.sha }}
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ steps.vars.outputs.VERSION }}
+            ghcr.io/truthdb/truthdb-installer-kernel-builder-image:v${{ steps.vars.outputs.VERSION }}

@@ -3,7 +3,7 @@ name: Build and publish kernel builder image
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - '*.*.*'
 
 jobs:
   build-and-push:
@@ -45,4 +45,3 @@ jobs:
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:latest
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ github.sha }}
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ steps.vars.outputs.VERSION }}
-            ghcr.io/truthdb/truthdb-installer-kernel-builder-image:v${{ steps.vars.outputs.VERSION }}

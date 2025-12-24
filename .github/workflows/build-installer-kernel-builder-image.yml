@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
@@ -35,6 +35,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push image (multi-arch)
+        id: build
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
           context: .
@@ -44,4 +45,48 @@ jobs:
           tags: |
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:latest
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ github.sha }}
+            ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ github.ref_name }}
             ghcr.io/truthdb/truthdb-installer-kernel-builder-image:${{ steps.vars.outputs.VERSION }}
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.vars.outputs.VERSION }}
+          IMAGE: ghcr.io/truthdb/truthdb-installer-kernel-builder-image
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          generated_notes=$(gh api -X POST "repos/$REPO/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -f target_commitish="$GITHUB_SHA" \
+            --jq .body)
+
+          cat > release_body.md <<EOF
+          ${generated_notes}
+
+          ## Container image
+          
+          - Tag: ${IMAGE}:${TAG}
+          - Version tag: ${IMAGE}:${VERSION}
+          - Digest: ${IMAGE}@${DIGEST}
+          
+          ### Pull
+          
+          - docker pull ${IMAGE}:${TAG}
+          - docker pull ${IMAGE}@${DIGEST}
+          EOF
+
+          if gh api "repos/$REPO/releases/tags/$TAG" >/dev/null 2>&1; then
+            release_id=$(gh api "repos/$REPO/releases/tags/$TAG" --jq .id)
+            gh api -X PATCH "repos/$REPO/releases/$release_id" \
+              -f name="$TAG" \
+              -f body=@release_body.md
+          else
+            gh api -X POST "repos/$REPO/releases" \
+              -f tag_name="$TAG" \
+              -f name="$TAG" \
+              -f body=@release_body.md
+          fi

@@ -62,7 +62,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
+          tag_name: ${{ steps.get_tag.outputs.tag }}
           release_name: Release ${{ steps.get_version.outputs.version }}
           body: ${{ steps.release_notes.outputs.notes }}
           draft: false
@@ -77,6 +77,14 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Compute image name
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo=$(echo "ghcr.io/${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          echo "repo=${repo}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -100,21 +108,21 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
-            ghcr.io/${{ github.repository }}:${{ needs.create-release.outputs.tag }}
-            ghcr.io/${{ github.repository }}:${{ needs.create-release.outputs.version }}
+            ${{ steps.image.outputs.repo }}:latest
+            ${{ steps.image.outputs.repo }}:${{ github.sha }}
+            ${{ steps.image.outputs.repo }}:${{ needs.create-release.outputs.tag }}
+            ${{ steps.image.outputs.repo }}:${{ needs.create-release.outputs.version }}
 
       - name: Package release metadata
         run: |
           mkdir -p dist
           {
-            echo "image=ghcr.io/${GITHUB_REPOSITORY}";
+            echo "image=${{ steps.image.outputs.repo }}";
             echo "tag=${{ needs.create-release.outputs.tag }}";
             echo "version=${{ needs.create-release.outputs.version }}";
             echo "digest=${{ steps.build.outputs.digest }}";
-            echo "pull_tag=docker pull ghcr.io/${GITHUB_REPOSITORY}:${{ needs.create-release.outputs.tag }}";
-            echo "pull_digest=docker pull ghcr.io/${GITHUB_REPOSITORY}@${{ steps.build.outputs.digest }}";
+            echo "pull_tag=docker pull ${{ steps.image.outputs.repo }}:${{ needs.create-release.outputs.tag }}";
+            echo "pull_digest=docker pull ${{ steps.image.outputs.repo }}@${{ steps.build.outputs.digest }}";
           } > dist/image.txt
 
       - name: Upload artifacts

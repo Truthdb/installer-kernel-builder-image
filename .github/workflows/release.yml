@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   release:
-    uses: Truthdb/.github/.github/workflows/docker-image-release.yml@issue-17-workflows
+    uses: Truthdb/.github/.github/workflows/docker-image-release.yml@workflows-v1
     with:
       project_name: installer-kernel-builder-image
       image_repo: ghcr.io/truthdb/truthdb-installer-kernel-builder-image

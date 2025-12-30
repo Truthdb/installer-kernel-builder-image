@@ -83,8 +83,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          repo=$(echo "ghcr.io/${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
-          echo "repo=${repo}" >> "$GITHUB_OUTPUT"
+          echo "repo=ghcr.io/truthdb/truthdb-installer-kernel-builder-image" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

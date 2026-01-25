@@ -14,7 +14,6 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
       tag: ${{ steps.get_tag.outputs.tag }}
     steps:
@@ -30,43 +29,31 @@ jobs:
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Generate release notes
-        id: release_notes
-        run: |
-          PREV_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
-
-          if [ -z "$PREV_TAG" ]; then
-            CHANGELOG="Initial release"
-          else
-            CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges)
-          fi
-
-          cat > release_notes.md << EOF
-          ## installer-kernel-builder-image ${GITHUB_REF#refs/tags/v}
-
-          ### Changes
-          $CHANGELOG
-
-          ### Container
-
-          This release publishes a multi-arch image to GHCR.
-          EOF
-
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          cat release_notes.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Create GitHub Release (generate notes, mark latest)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.get_tag.outputs.tag }}
-          release_name: Release ${{ steps.get_version.outputs.version }}
-          body: ${{ steps.release_notes.outputs.notes }}
-          draft: false
-          prerelease: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.get_tag.outputs.tag }}"
+          VERSION="${{ steps.get_version.outputs.version }}"
+          NOTES_FILE="${RUNNER_TEMP}/release-notes-${TAG}.md"
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -f target_commitish="${GITHUB_SHA}" \
+            --jq .body > "$NOTES_FILE"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --title "Release ${VERSION}" \
+              --notes-file "$NOTES_FILE" \
+              --latest
+          else
+            gh release create "$TAG" \
+              --title "Release ${VERSION}" \
+              --notes-file "$NOTES_FILE" \
+              --latest
+          fi
 
   build:
     name: Build
@@ -142,12 +129,16 @@ jobs:
           name: release-assets
           path: dist
 
-      - name: Upload Release Asset - Image Metadata
-        uses: actions/upload-release-asset@v1
+      - name: Upload release assets
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./dist/image.txt
-          asset_name: installer-kernel-builder-image-v${{ needs.create-release.outputs.version }}.txt
-          asset_content_type: text/plain
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(./dist/*)
+          if (( ${#files[@]} == 0 )); then
+            echo "No release assets found; skipping upload."
+            exit 0
+          fi
+          gh release upload "${{ needs.create-release.outputs.tag }}" "${files[@]}" --clobber

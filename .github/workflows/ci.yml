@@ -28,6 +28,12 @@ jobs:
           dockerfile: docker/Dockerfile
           ignore: DL3008
 
+      - name: Bash syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n ./build_local.sh
+
   test:
     name: Test
     runs-on: ubuntu-latest
